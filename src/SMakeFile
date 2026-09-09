@@ -1,0 +1,18 @@
+#################################################
+#
+# SAS/C Makefile for "Emu68Reboot"
+# for AmigaOS M68K SAS/C 6.59 Compiler
+# 
+#################################################
+
+OUTFILE=Emu68Reboot
+
+OBJECTS=main.o LE32.o 
+
+all: $(OUTFILE)
+
+clean:
+	@delete $(OBJECTS)
+
+$(OUTFILE): $(OBJECTS)
+	sc CPU=68000 MATH=STANDARD CHKABORT NOICONS STRIPDEBUG LINK $(OBJECTS) TO $(OUTFILE)
