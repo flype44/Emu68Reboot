@@ -9,13 +9,13 @@
 ## **FORMAT**
 
 ```
-	EMU68REBOOT [<DELAY seconds>] [COLDREBOOT] [KILLEXEC] [HELP]
+	EMU68REBOOT [<DELAY seconds>] [DISKFLUSH] [KILLEXEC] [COLDREBOOT] [HELP]
 ```
 
 ## **TEMPLATE**
 
 ```
-	DELAY/N,COLDREBOOT/S,KILLEXEC/S,HELP/S
+	DELAY/N,DISKFLUSH/S,KILLEXEC/S,COLDREBOOT/S,HELP/S
 ```
 
 ## **PATH**
@@ -59,6 +59,13 @@
 	The DELAY option inserts an extra pause, in seconds, before that
 	disk-activity wait begins.
 
+	The DISKFLUSH option asks every mounted volume to write back any pending
+	cached modifications (e.g. delayed writes on file systems such as PFS or
+	SFS) before the disk-activity wait begins. This is a best-effort
+	operation: failures on individual volumes are silently ignored.
+
+	The KILLEXEC option clears the ExecBase pointer before rebooting the RPi.
+
 	Just like the official REBOOT command, it also sets the Gary/Gayle-
 	compatible "coldboot" hardware flag (bit 7 of $DE0002) right before
 	rebooting, forcing a genuine cold hardware reinit on the next boot on
@@ -67,8 +74,6 @@
 
 	The COLDREBOOT option performs a standard AmigaOS reboot instead of a
 	Raspberry Pi reboot.
-
-	The KILLEXEC option clears the ExecBase pointer before rebooting the RPi.
 
 	If no option is given, the command reboots the Raspberry Pi.
 
@@ -98,10 +103,11 @@ Waits for disk activity to finish, then reboots the Raspberry Pi.
 Waits 5 seconds, then for disk activity to finish, then reboots the Raspberry Pi.
 
 ```
-	1> C:EMU68REBOOT COLDREBOOT
+	1> C:EMU68REBOOT DISKFLUSH
 ```
 
-Waits for disk activity to finish, then performs a standard AmigaOS reboot.
+Flushes pending file system writes, then waits for disk activity to finish,
+then reboots the Raspberry Pi.
 
 ```
 	1> C:EMU68REBOOT KILLEXEC
@@ -110,14 +116,21 @@ Waits for disk activity to finish, then performs a standard AmigaOS reboot.
 Clears ExecBase, then reboots the Raspberry Pi.
 
 ```
+	1> C:EMU68REBOOT COLDREBOOT
+```
+
+Waits for disk activity to finish, then performs a standard AmigaOS reboot.
+
+```
 	1> C:EMU68REBOOT HELP
 	Emu68Reboot 1.1 (9.9.2026) [SAS/C 6.59] Philippe CARPENTIER
-	DELAY/N,COLDREBOOT/S,KILLEXEC/S,HELP/S
+	DELAY/N,DISKFLUSH/S,KILLEXEC/S,COLDREBOOT/S,HELP/S
 
-	HELP       : Print this help
 	DELAY      : Delay in seconds, before waiting for disk activity
-	COLDREBOOT : AmigaOS standard reboot
+	DISKFLUSH  : Flush pending file system writes before waiting for disk activity
 	KILLEXEC   : Kill ExecBase before rebooting
+	COLDREBOOT : AmigaOS standard reboot
+	HELP       : Print this help
 ```
 
 ## **SEE ALSO**

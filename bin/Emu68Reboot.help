@@ -2,10 +2,10 @@
 	EMU68REBOOT - Reboots your Amiga.
 
    FORMAT
-	EMU68REBOOT [<DELAY seconds>] [COLDREBOOT] [KILLEXEC] [HELP]
+	EMU68REBOOT [<DELAY seconds>] [DISKFLUSH] [KILLEXEC] [COLDREBOOT] [HELP]
 
    TEMPLATE
-	DELAY/N,COLDREBOOT/S,KILLEXEC/S,HELP/S
+	DELAY/N,DISKFLUSH/S,KILLEXEC/S,COLDREBOOT/S,HELP/S
 
    PATH
 	C:EMU68REBOOT
@@ -29,19 +29,24 @@
 	itself as validating, and can only be interrupted with CTRL_C, which
 	cancels the reboot entirely.
 
-	The DELAY option inserts an extra pause, in seconds, before that
-	disk-activity wait begins.
-
 	Just like the official REBOOT command, it also sets the Gary/Gayle-
 	compatible "coldboot" hardware flag (bit 7 of $DE0002) right before
 	rebooting, forcing a genuine cold hardware reinit on the next boot on
 	real A600/A1200/CD32 machines. On any other model (A500/A1000/A2000/
 	CDTV), this is a harmless no-op, since none of them decode that address.
 
-	The COLDREBOOT option performs a standard AmigaOS reboot instead of a
-	Raspberry Pi reboot.
+	The DELAY option inserts an extra pause, in seconds, before that
+	disk-activity wait begins.
+
+	The DISKFLUSH option asks every mounted volume to write back any pending
+	cached modifications (e.g. delayed writes on file systems such as PFS or
+	SFS) before the disk-activity wait begins. This is a best-effort
+	operation: failures on individual volumes are silently ignored.
 
 	The KILLEXEC option clears the ExecBase pointer before rebooting the RPi.
+
+	The COLDREBOOT option performs a standard AmigaOS reboot instead of a
+	Raspberry Pi reboot.
 
 	If no option is given, the command reboots the Raspberry Pi.
 

@@ -3,6 +3,12 @@
  * Project: Emu68Reboot
  * Author:  Philippe CARPENTIER
  * 
+ * Flush Tests:
+ * Echo "Hello world!" >  Hello.txt && Emu68Reboot
+ * Echo "Hello world!" >  Hello.txt && Emu68Reboot DISKFLUSH
+ * Echo "Hello world!" >> Hello.txt && Emu68Reboot 
+ * Echo "Hello world!" >> Hello.txt && Emu68Reboot DISKFLUSH
+ * 
  *****************************************************************************/
 
 #include <dos/dos.h>
@@ -30,12 +36,13 @@
 #define GARY_COLDBOOT_REG ((volatile UBYTE *)0x00DE0002)
 #define GARY_COLDBOOT_BIT 0x80
 
-#define TEMPLATE "DELAY/N,COLDREBOOT/S,KILLEXEC/S,HELP/S"
+#define TEMPLATE "DELAY/N,DISKFLUSH/S,KILLEXEC/S,COLDREBOOT/S,HELP/S"
 
 typedef enum {
 	OPT_DELAY,
-	OPT_COLDREBOOT,
+	OPT_DISKFLUSH,
 	OPT_KILLEXEC,
+	OPT_COLDREBOOT,
 	OPT_HELP,
 	OPT_COUNT
 } OPT_ARGS;
@@ -62,18 +69,51 @@ extern struct DosLibrary * DOSBase;
 STATIC VOID Help(VOID)
 {
 	Printf("%s\n%s\n\n%s\n", VerString + 6, TEMPLATE,
-	"HELP       : Print this help\n"
 	"DELAY      : Delay in seconds, before waiting for disk activity\n"
+	"DISKFLUSH  : Flush pending file system writes before waiting for disk activity\n"
+	"KILLEXEC   : Kill ExecBase before rebooting\n"
 	"COLDREBOOT : AmigaOS standard reboot\n"
-	"KILLEXEC   : Kill ExecBase before rebooting\n");
+	"HELP       : Print this help\n"
+	);
 }
 
 /*****************************************************************************
- * 
+ *
+ * FlushPendingDiskWrites()
+ * Best-effort: asks every mounted volume to write back cached modifications
+ * (e.g. delayed writes on PFS/SFS). Failures are silently ignored, since
+ * ACTION_FLUSH is not guaranteed to be honored by every file system.
+ *
+ *****************************************************************************/
+
+STATIC VOID FlushPendingDiskWrites(VOID)
+{
+	struct DosList * dol;
+
+	dol = LockDosList(LDF_VOLUMES | LDF_READ);
+
+	while (dol = NextDosEntry(dol, LDF_VOLUMES | LDF_READ))
+	{
+		if (CheckSignal(SIGBREAKF_CTRL_C))
+		{
+			break;
+		}
+
+		if (dol->dol_Task)
+		{
+			DoPkt(dol->dol_Task, ACTION_FLUSH, 0, 0, 0, 0, 0);
+		}
+	}
+
+	UnLockDosList(LDF_VOLUMES | LDF_READ);
+}
+
+/*****************************************************************************
+ *
  * WaitForDiskActivity()
  * Returns FALSE if aborted by CTRL_C (no reboot should happen in that case).
  * Returns TRUE once every mounted volume is confirmed idle.
- * 
+ *
  *****************************************************************************/
 
 STATIC BOOL WaitForDiskActivity(VOID)
@@ -161,8 +201,9 @@ ULONG main(ULONG argc, STRPTR * argv)
 	struct RDArgs * rdargs;
 	
 	opts[OPT_DELAY     ] = 0L;
-	opts[OPT_COLDREBOOT] = 0L;
+	opts[OPT_DISKFLUSH ] = 0L;
 	opts[OPT_KILLEXEC  ] = 0L;
+	opts[OPT_COLDREBOOT] = 0L;
 	opts[OPT_HELP      ] = 0L;
 	
 	if (rdargs = (struct RDArgs *)ReadArgs(TEMPLATE, opts, NULL))
@@ -189,6 +230,12 @@ ULONG main(ULONG argc, STRPTR * argv)
 			}
 			
 			Delay(seconds * 50);
+
+			/* DISKFLUSH */
+			if (opts[OPT_DISKFLUSH] != NULL)
+			{
+				FlushPendingDiskWrites();
+			}
 
 			/* Wait for any ongoing drive write/validation to finish. */
 			if (WaitForDiskActivity())
